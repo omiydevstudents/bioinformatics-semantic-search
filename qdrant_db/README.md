@@ -46,13 +46,17 @@ pip install qdrant-client sentence-transformers numpy uuid
 docker pull qdrant/qdrant
 ```
 
-### 2. Start Qdrant container
+### 2. Start Qdrant container (linux)
 
 ```bash
 docker run -d -p 6333:6333 -p 6334:6334 \
     -v "$(pwd)/qdrant_storage:/qdrant/storage:z" \
     --name qdrant-bioinformatics \
     qdrant/qdrant
+```
+### 2. Start Qdrant container (Windows)
+```bash
+docker run -d -p 6333:6333 -p 6334:6334 -v ${PWD}/qdrant_storage:/qdrant/storage --name qdrant-bioinformatics qdrant/qdrant
 ```
 
 This command:
