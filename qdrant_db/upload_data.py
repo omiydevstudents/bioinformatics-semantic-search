@@ -1,11 +1,27 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchText
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 from sentence_transformers import SentenceTransformer
-
+import os
+from dotenv import load_dotenv
 import uuid
 
-client = QdrantClient(url="http://localhost:6333")
+# Load environment variables from .env file
+load_dotenv()
+
+# Get Qdrant credentials from environment variables
+api_key = os.getenv("QDRANT_API_KEY")
+cluster_url = os.getenv("QDRANT_CLUSTER_URL")
+
+# Connect to Qdrant cluster if credentials are available, otherwise use local
+if api_key and cluster_url:
+    client = QdrantClient(url=cluster_url, api_key=api_key)
+    print(f"Connected to Qdrant cloud cluster at {cluster_url}")
+else:
+    client = QdrantClient(url="http://localhost:6333")
+    print("Connected to local Qdrant instance")
+
 colName = "OmiyDB"
 
 bioinformatics_tools = [
@@ -62,6 +78,30 @@ tool_payloads = [] # e.g. {'tool_name': 'BioPython', 'description': 'A set of fr
 
 # Process each tool
 for tool in bioinformatics_tools:
+    tool_name = tool['tool_name']
+    
+    # Check if the tool already exists in the collection
+    try:
+        existing_tools = client.scroll(
+            collection_name=colName,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="tool_name",
+                        match=MatchText(text=tool_name)
+                    )
+                ]
+            ),
+            limit=1
+        )[0]
+        
+        if existing_tools:
+            print(f"Tool '{tool_name}' already exists in the collection. Skipping.")
+            continue
+    except UnexpectedResponse:
+        # Collection might not exist yet or other API issue
+        pass
+    
     # Generate a unique ID
     tool_id = str(uuid.uuid4())
     tool_ids.append(tool_id)
@@ -75,16 +115,19 @@ for tool in bioinformatics_tools:
     # Add payload with all tool data
     tool_payloads.append(tool)
 
-client.upsert(
-    collection_name=colName,
-    points=[
-        PointStruct(
-            id=tool_id, 
-            vector=vector, 
-            payload=payload
-        )
-        for tool_id, vector, payload in zip(tool_ids, tool_vectors, tool_payloads)
-    ]
-)
-
-print(f"Successfully uploaded {len(bioinformatics_tools)} bioinformatics tools to the collection '{colName}'")
+# Only upload if we have tools to upload
+if tool_ids:
+    client.upsert(
+        collection_name=colName,
+        points=[
+            PointStruct(
+                id=tool_id, 
+                vector=vector, 
+                payload=payload
+            )
+            for tool_id, vector, payload in zip(tool_ids, tool_vectors, tool_payloads)
+        ]
+    )
+    print(f"Successfully uploaded {len(tool_ids)} new bioinformatics tools to the collection '{colName}'")
+else:
+    print("No new tools to upload. All tools already exist in the collection.")

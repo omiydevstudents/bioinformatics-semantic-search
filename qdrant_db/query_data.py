@@ -1,28 +1,51 @@
 from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
 from sentence_transformers import SentenceTransformer
+import os
+from dotenv import load_dotenv
 
-client = QdrantClient(url="http://localhost:6333")
 
-colName = "OmiyDB"
+def main():
+    # Load environment variables from .env file
+    load_dotenv()
 
-model_name = "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext"
-model = SentenceTransformer(model_name)
-print(f"Model '{model_name}' loaded successfully!")
+    # Get Qdrant credentials from environment variables
+    api_key = os.getenv("QDRANT_API_KEY")
+    cluster_url = os.getenv("QDRANT_CLUSTER_URL")
+    embedding_model = os.getenv("EMBEDDING_MODEL")
+    collection_name = os.getenv("COLLECTION_NAME")
 
-# test a simple search
-query = "Which tool provides good workflows for germline short variant discovery from high-throughput sequencing data?"
-query_vector = model.encode(query).tolist()
+    if api_key and cluster_url:
+        client = QdrantClient(url=cluster_url, api_key=api_key)
+        print("Connected to Qdrant cloud cluster")
+    else:
+        client = QdrantClient(url="http://localhost:6333")
+        print("Connected to local Qdrant instance")
 
-search_results = client.search(
-    collection_name=colName,
-    query_vector=query_vector,
-    limit=3
-)
+    # Load the embedding model
+    model = SentenceTransformer(embedding_model)
 
-print("\nSearch results for query:", query)
-for result in search_results:
-    print(f"Tool: {result.payload['tool_name']}")
-    print(f"Score: {result.score}")
-    print(f"Description: {result.payload['description']}")
-    print(f"URL: {result.payload['url']}")
-    print("-------------")
+    # Query the database
+    query = input("Enter a query: ")
+    query_vector = model.encode(query).tolist()
+    search_result = client.search(
+        collection_name=collection_name,
+        query_vector=query_vector,
+        limit=3,
+        with_payload=True,
+        with_vectors=True
+    )
+    # Display the search results
+    print("Search Results:")
+    for hit in search_result:
+        print(f"ID: {hit.id} \nScore: {hit.score} \nTool: {hit.payload["tool_name"]} \nDescription: {hit.payload["description"]}\n")
+        print("Vector:", hit.vector[:5], "...")
+        print("-" * 40)
+    # Handle case where no results are found
+    if not search_result:
+        print("No results found for the query.")
+    
+
+
+if __name__ == "__main__":
+    main()
