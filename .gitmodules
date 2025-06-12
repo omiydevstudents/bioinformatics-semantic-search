@@ -1,0 +1,6 @@
+[submodule "mcp_system/holy-bio-mcp"]
+	path = mcp_system/holy-bio-mcp
+	url = https://github.com/longevity-genie/holy-bio-mcp.git
+[submodule "mcp_system/biotite-mcp"]
+	path = mcp_system/biotite-mcp
+	url = https://github.com/longevity-genie/biotite-mcp.git
