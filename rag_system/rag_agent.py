@@ -13,10 +13,8 @@ from sentence_transformers import SentenceTransformer
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Module-level global variables (initialized once)
 _qdrant_client = None
 _llm = None
 _embedding_model = None
@@ -95,9 +93,13 @@ def search_vector_db(state: RAGState) -> RAGState:
     tools_found = []
     for hit in search_results:
         tool_info = {
-            "tool_name": hit.payload.get("tool_name", "Unknown"),
+            "name": hit.payload.get("name", "Unknown"),
             "description": hit.payload.get("description", "No description"),
-            "url": hit.payload.get("url", "No URL"),
+            "homepage": hit.payload.get("homepage", "No URL"),
+            "topics": hit.payload.get("topics", []),
+            "operations": hit.payload.get("operations", []),
+            "language": hit.payload.get("language", []),
+            "biotools_id": hit.payload.get("biotools_id", ""),
             "relevance_score": hit.score
         }
         tools_found.append(tool_info)
@@ -115,9 +117,12 @@ def format_answer_with_llm(state: RAGState) -> RAGState:
     
     # Create context from search results
     tools_context = "\n\n".join([
-        f"Tool: {tool['tool_name']}\n"
+        f"Tool: {tool['name']}\n"
         f"Description: {tool['description']}\n"
-        f"URL: {tool['url']}\n"
+        f"Topics: {', '.join(tool['topics']) if tool['topics'] else 'N/A'}\n"
+        f"Operations: {', '.join(tool['operations']) if tool['operations'] else 'N/A'}\n"
+        f"Language: {', '.join(tool['language']) if tool['language'] else 'N/A'}\n"
+        f"URL: {tool['homepage']}\n"
         f"Relevance Score: {tool['relevance_score']:.2f}"
         for tool in state["search_results"]
     ])

@@ -38,7 +38,7 @@ def main():
     # Display the search results
     print("Search Results:")
     for hit in search_result:
-        print(f"ID: {hit.id} \nScore: {hit.score} \nTool: {hit.payload["tool_name"]} \nDescription: {hit.payload["description"]}\n")
+        print(f"ID: {hit.id} \nScore: {hit.score} \nTool: {hit.payload['name']} \nDescription: {hit.payload['description']}\n")
         print("Vector:", hit.vector[:5], "...")
         print("-" * 40)
     # Handle case where no results are found
