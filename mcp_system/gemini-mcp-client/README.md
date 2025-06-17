@@ -10,3 +10,4 @@
 - [ ] Tests oder Anleitungen hinzufügen, wie man prüft, ob alles funktioniert.
 - [ ] UI?
 - [ ] Web scraping
+- [ ] brauchen wir noch qdrant?
