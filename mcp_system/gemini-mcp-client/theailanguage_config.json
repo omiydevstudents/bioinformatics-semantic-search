@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "biothings-mcp": {
+      "command": "uvx",
+      "args": ["--from", "biothings-mcp", "stdio"],
+      "env": {}
+    },
+    "gget-mcp": {
+      "command": "uvx",
+      "args": ["gget-mcp", "stdio"]
+    },
+    "synergy-age-mcp": {
+      "command": "uvx",
+      "args": ["synergy-age-mcp"],
+      "env": {
+        "MCP_PORT": "3002",
+        "MCP_HOST": "0.0.0.0",
+        "MCP_TRANSPORT": "stdio"
+      }
+    },
+    "opengenes-mcp": {
+      "command": "uvx",
+      "args": ["opengenes-mcp"],
+      "env": {
+        "MCP_PORT": "3001",
+        "MCP_HOST": "0.0.0.0",
+        "MCP_TRANSPORT": "stdio"
+      }
+    },
+    "pharmacology-mcp": {
+      "command": "uvx",
+      "args": ["pharmacology-mcp", "server", "--port", "3001"],
+      "env": {}
+    },
+    "biotite-mcp": {
+      "command": "uv",
+      "args": ["run", "stdio"],
+      "cwd": "../biotite-mcp"
+    }
+  }
+} 
