@@ -1,3 +1,7 @@
+## Run
+1. Copy your API-key into mcp_config.json
+1. python3 client.py mcp_config.json
+
 ## TODO
 
 - [ ] Anleitung hinzufügen, wie man die Python-Umgebung und die Abhängigkeiten installiert (`uv` oder `pip` benutzen).

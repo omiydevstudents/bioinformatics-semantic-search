@@ -126,7 +126,8 @@ async def run_agent():
             # Create StdioServerParameters using the command and arguments specified for the server
             server_params = StdioServerParameters(
                 command=server_info["command"],
-                args=server_info["args"]
+                args=server_info["args"],
+                env=server_info["env"]
             )
 
             try:
@@ -166,7 +167,7 @@ async def run_agent():
             if query.lower() == "quit":
                 # Exit the loop if the user types 'quit'
                 break
-
+            query += " \n Use biopython.org and bioconductor.org as references. Please add full links to the tools you found!"
             # Invoke the agent asynchronously with the query as the input message
             response = await agent.ainvoke({"messages": query})
 
