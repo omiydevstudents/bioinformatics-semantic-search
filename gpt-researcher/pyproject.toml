@@ -1,0 +1,10 @@
+[project]
+name = "gpt-researcher-omiy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "exa-py>=1.14.13",
+    "gpt-researcher>=0.12.3",
+]
