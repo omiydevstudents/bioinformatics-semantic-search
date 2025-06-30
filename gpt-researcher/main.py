@@ -1,13 +1,27 @@
 from gpt_researcher import GPTResearcher
 import asyncio
+from langchain.vectorstores import VectorStore
+from langchain_qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
+from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEmbeddings
+import os
 
-async def get_report(query: str, report_type: str, domains: list[str]):
-    researcher = GPTResearcher(query, report_type, query_domains=domains)
+async def get_report(query: str, report_type: str, domains: list[str], vector_store: VectorStore):
+    if vector_store:
+        researcher = GPTResearcher(query, 
+                                   report_type, 
+                                   query_domains=domains, 
+                                   report_source="langchain_vectorstore",
+                                   vector_store=vector_store)
+    else:
+        researcher = GPTResearcher(query, report_type, query_domains=domains)
     research_result = await researcher.conduct_research()
     report = await researcher.write_report()
     
     # Get additional information
     research_context = researcher.get_research_context()
+    print(research_context)
     research_costs = researcher.get_costs()
     research_images = researcher.get_research_images()
     research_sources = researcher.get_research_sources()
@@ -18,9 +32,28 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()  # Load environment variables from a .env file (e.g., GOOGLE_API_KEY)
 
-    report_type = "outline_report"
+    report_type = "research_report"
     domains = ['biopython.org', 'bioconductor.org']
     
+    api_key = os.getenv("QDRANT_API_KEY")
+    cluster_url = os.getenv("QDRANT_CLUSTER_URL")
+
+    if api_key and cluster_url:
+        qdrant_client = QdrantClient(url=cluster_url, api_key=api_key)
+        print("Connected to Qdrant cloud cluster")
+    else:
+        qdrant_client = QdrantClient(url="http://localhost:6333")
+        print("Connected to local Qdrant instance")
+    
+    model_name = "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext"
+    embedding_model = HuggingFaceEmbeddings(model_name=model_name)
+
+    vector_store = QdrantVectorStore(
+        client=qdrant_client,
+        collection_name="OmiyDB",
+        embedding=embedding_model,
+    )
+
     print("\n🚀 Toolfinder ready! Type 'quit' to exit. Type 'config' to configure your toolfinder.")
     while True:
         # Prompt the user to enter a query
@@ -34,11 +67,11 @@ if __name__ == "__main__":
                 print('exit')
                 query = input("\n").strip()
                 if query == "1":
-                    print('1) research_report')
+                    print('1) research_report (default))')
                     print('2) detailed_report')
                     print('3) deep')
                     print('4) resource_report')
-                    print('5) outline_report (default)')
+                    print('5) outline_report')
                     print('6) custom_report')
                     print('7) subtopic_report')
 
@@ -69,7 +102,7 @@ if __name__ == "__main__":
 
         query += " \n Use biopython.org and bioconductor.org as references. Please add full links to the tools you found!"
     
-        report, context, costs, images, sources = asyncio.run(get_report(query, report_type, domains))
+        report, context, costs, images, sources = asyncio.run(get_report(query, report_type, domains, vector_store=vector_store))
     
         print("Report:")
         print(report)
