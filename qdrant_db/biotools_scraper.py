@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
 """
 Bio.tools Python Tools Extractor
 
-This script demonstrates how to:
-1. Connect to the Bio.tools API
-2. Filter for Python tools specifically  
-3. Iterate through all pages of results
-4. Extract tool names and descriptions
-5. Prepare data for storage in a vector database (like Qdrant)
-
-Author: Assistant
+This script:
+1. Connects to the Bio.tools API
+2. Filters for Python tools specifically
+3. Iterates through all pages of results
+4. Extracts tool names and descriptions
+5. Prepares data for storage in a vector database (like Qdrant)
 """
 
 import requests
@@ -198,7 +195,7 @@ def main():
     print("=" * 50)
     
     # Initialize API client
-    api = BioToolsAPI(requests_per_second=2.0)  # Be nice to their servers
+    api = BioToolsAPI(requests_per_second=2.0)
     
     # Fetch Python tools
     python_tools = api.get_python_tools(page_size=50)
