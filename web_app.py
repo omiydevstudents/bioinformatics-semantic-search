@@ -81,39 +81,73 @@ def search():
         
         result = search_sessions[session_id]
         
-        if 'error' in result:
+        # Check if result is an error dictionary (more robust checking)
+        if isinstance(result, dict) and 'error' in result:
             return jsonify({'error': result['error']}), 500
         
-        # Convert result to JSON-serializable format
-        response_data = {
-            'session_id': session_id,
-            'query': result.query,
-            'execution_time': result.execution_time,
-            'confidence_score': result.confidence_score,
-            'systems_used': result.execution_summary['systems_used'],
-            'total_tools_found': len(result.top_recommendations),
-            'recommendations': [
-                {
-                    'name': tool.name,
-                    'description': tool.description,
-                    'url': tool.url,
-                    'relevance_score': tool.relevance_score,
-                    'confidence': tool.confidence,
-                    'source': tool.source,
-                    'topics': tool.topics,
-                    'operations': tool.operations,
-                    'programming_language': tool.programming_language
-                }
-                for tool in result.top_recommendations
-            ],
-            'rag_analysis': result.rag_analysis if len(result.rag_analysis) > 50 else '',
-            'vector_results': result.vector_search_results[:3] if result.vector_search_results else [],
-            'web_findings': result.web_search_findings if 'unavailable' not in result.web_search_findings else '',
-            'research_report': result.research_report if 'unavailable' not in result.research_report else '',
-            'errors': result.execution_summary.get('errors', [])
-        }
+        # Debug logging to see what we got
+        print(f"DEBUG: Result type: {type(result)}")
+        print(f"DEBUG: Result attributes: {dir(result)}")
         
-        return jsonify(response_data)
+        # Convert result to JSON-serializable format with robust error handling
+        try:
+            # Safely extract basic information
+            query = getattr(result, 'query', '')
+            execution_time = getattr(result, 'execution_time', 0)
+            confidence_score = getattr(result, 'confidence_score', 0)
+            
+            # Safely extract execution summary
+            execution_summary = getattr(result, 'execution_summary', {})
+            systems_used = execution_summary.get('systems_used', []) if isinstance(execution_summary, dict) else []
+            
+            # Safely extract recommendations
+            top_recommendations = getattr(result, 'top_recommendations', [])
+            recommendations_list = []
+            
+            for tool in top_recommendations:
+                try:
+                    tool_dict = {
+                        'name': getattr(tool, 'name', 'Unknown Tool'),
+                        'description': getattr(tool, 'description', ''),
+                        'url': getattr(tool, 'url', ''),
+                        'relevance_score': getattr(tool, 'relevance_score', 0),
+                        'confidence': getattr(tool, 'confidence', 0),
+                        'source': getattr(tool, 'source', ''),
+                        'topics': getattr(tool, 'topics', []) or [],
+                        'operations': getattr(tool, 'operations', []) or [],
+                        'programming_language': getattr(tool, 'programming_language', '') or ''
+                    }
+                    recommendations_list.append(tool_dict)
+                except Exception as tool_error:
+                    print(f"Error processing tool: {tool_error}")
+                    continue
+            
+            # Safely extract additional data
+            rag_analysis = getattr(result, 'rag_analysis', '')
+            vector_search_results = getattr(result, 'vector_search_results', [])
+            web_search_findings = getattr(result, 'web_search_findings', '')
+            research_report = getattr(result, 'research_report', '')
+            
+            response_data = {
+                'session_id': session_id,
+                'query': str(query),
+                'execution_time': float(execution_time),
+                'confidence_score': float(confidence_score),
+                'systems_used': systems_used,
+                'total_tools_found': len(recommendations_list),
+                'recommendations': recommendations_list,
+                'rag_analysis': str(rag_analysis) if rag_analysis and len(str(rag_analysis)) > 50 else '',
+                'vector_results': vector_search_results[:3] if isinstance(vector_search_results, list) else [],
+                'web_findings': str(web_search_findings) if web_search_findings else '',
+                'research_report': str(research_report) if research_report else '',
+                'errors': execution_summary.get('errors', []) if isinstance(execution_summary, dict) else []
+            }
+            
+            return jsonify(response_data)
+        
+        except Exception as processing_error:
+            print(f"Error processing search result: {processing_error}")
+            return jsonify({'error': f'Result processing failed: {str(processing_error)}'}), 500
         
     except Exception as e:
         return jsonify({'error': f'Search failed: {str(e)}'}), 500
