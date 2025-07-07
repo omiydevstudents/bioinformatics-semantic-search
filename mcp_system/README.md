@@ -8,4 +8,4 @@
     
 ### Introduction
 Followed tutorial: https://www.youtube.com/watch?v=GAPncIfnDwg
-https://github.com/theailanguage/mcp_client?tab=readme-ov-file
+https://github.com/theailanguage/mcp_client?tab=readme-ov-file햣햣git

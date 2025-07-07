@@ -12,7 +12,15 @@ import sys
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
+from contextlib import AsyncExitStack
 from dotenv import load_dotenv
+
+# MCP imports
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from langchain_mcp_adapters.tools import load_mcp_tools
+from langgraph.prebuilt import create_react_agent
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
 
@@ -263,24 +271,107 @@ class UnifiedBioinformaticsSearch:
         return [{"payload": result.payload, "score": result.score} for result in results]
     
     async def _execute_mcp_search(self, query: str) -> str:
-        """Execute MCP web search for external validation"""
-        print(f"   🌐 Preparing web search query...")
+        """Execute MCP search using actual MCP servers"""
+        print(f"   🌐 Initializing MCP client...")
+        
         # Enhanced query for bioinformatics context
         bio_query = f"{query} bioinformatics computational biology tools software"
         print(f"   🔍 Enhanced query: {bio_query}")
         
-        # Check if MCP client is actually available for integration
-        mcp_client_path = 'mcp_system/gemini-mcp-client/client.py'
-        if os.path.exists(mcp_client_path):
-            print(f"   📡 MCP client available - could integrate for real web search")
-            # Future: Actual MCP integration would go here
-            result = f"MCP web search executed for: {bio_query}\n\nFound external references to popular bioinformatics tools and databases."
-        else:
-            print(f"   💭 Using simulated web search")
-            result = f"Simulated web search for: {bio_query}\n\nExternal validation suggests popular tools in this domain."
+        try:
+            # Load MCP tools from all configured servers
+            tools = await self._get_mcp_tools()
+            
+            if not tools:
+                print(f"   ⚠️  No MCP tools available, using fallback")
+                return f"MCP search attempted for: {bio_query}\nNo external tools available at this time."
+            
+            print(f"   🔧 Using {len(tools)} MCP tools")
+            
+            # Create an agent with the loaded tools
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                temperature=0,
+                max_retries=2,
+                google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
+            
+            agent = create_react_agent(llm, tools)
+            
+            # Execute the query
+            print(f"   🤖 Executing MCP agent query...")
+            enhanced_query = f"{bio_query} \nUse biopython.org and bioconductor.org as references. Please add full links to the tools you found!"
+            
+            response = await agent.ainvoke({"messages": enhanced_query})
+            
+            # Extract the content from the response
+            if hasattr(response, 'get') and 'messages' in response:
+                last_message = response['messages'][-1]
+                if hasattr(last_message, 'content'):
+                    result = last_message.content
+                else:
+                    result = str(last_message)
+            else:
+                result = str(response)
+            
+            print(f"   ✅ MCP search complete ({len(result)} chars)")
+            return result
+            
+        except Exception as e:
+            print(f"   ❌ MCP search failed: {e}")
+            return f"MCP search encountered an error for: {bio_query}\nError: {str(e)}"
+    
+    async def _get_mcp_tools(self):
+        """Load tools from all configured MCP servers"""
+        config_path = 'mcp_system/gemini-mcp-client/theailanguage_config.json'
         
-        print(f"   ✅ Web search complete")
-        return result
+        if not os.path.exists(config_path):
+            print(f"   ❌ MCP config not found: {config_path}")
+            return []
+        
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"   ❌ Failed to load MCP config: {e}")
+            return []
+        
+        mcp_servers = config.get("mcpServers", {})
+        if not mcp_servers:
+            print(f"   ❌ No MCP servers in config")
+            return []
+        
+        tools = []
+        
+        async with AsyncExitStack() as stack:
+            for server_name, server_info in mcp_servers.items():
+                print(f"   🔗 Connecting to {server_name}...")
+                
+                try:
+                    # Create server parameters
+                    server_params = StdioServerParameters(
+                        command=server_info["command"],
+                        args=server_info["args"],
+                        env=server_info.get("env", {}),
+                        cwd=server_info.get("cwd")
+                    )
+                    
+                    # Connect to server
+                    read, write = await stack.enter_async_context(stdio_client(server_params))
+                    session = await stack.enter_async_context(ClientSession(read, write))
+                    await session.initialize()
+                    
+                    # Load tools from this server
+                    server_tools = await load_mcp_tools(session)
+                    tools.extend(server_tools)
+                    
+                    print(f"   ✅ Loaded {len(server_tools)} tools from {server_name}")
+                    
+                except Exception as e:
+                    print(f"   ⚠️  Failed to connect to {server_name}: {e}")
+                    continue
+        
+        return tools
     
     async def _execute_research_report(self, query: str) -> str:
         """Execute GPT Researcher for comprehensive analysis"""
