@@ -49,7 +49,7 @@ def search():
     
     data = request.get_json()
     query = data.get('query', '').strip()
-    max_tools = data.get('max_tools', 5)
+    max_tools = data.get('max_tools', 10)
     
     if not query:
         return jsonify({'error': 'Query is required'}), 400

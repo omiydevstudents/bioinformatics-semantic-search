@@ -117,7 +117,7 @@ class UnifiedBioinformaticsSearch:
         print(f"\n📊 Systems Summary: {active_systems}/4 active")
         return status
     
-    async def comprehensive_search(self, query: str, max_tools: int = 5) -> UnifiedSearchResult:
+    async def comprehensive_search(self, query: str, max_tools: int = 10) -> UnifiedSearchResult:
         """
         Execute comprehensive search across all available systems
         """
