@@ -1,13 +1,14 @@
 {
   "mcpServers": {
     "biothings-mcp": {
-      "command": "uvx",
-      "args": ["--from", "biothings-mcp", "stdio"],
+      "command": "C:\\Users\\young\\.local\\bin\\biothings-mcp.exe",
+      "args": ["stdio"],
       "env": {}
     },
     "gget-mcp": {
-      "command": "uvx",
-      "args": ["gget-mcp", "stdio"]
+      "command": "C:\\Users\\young\\.local\\bin\\gget-mcp.exe",
+      "args": ["stdio"],
+      "env": {}
     },
     "synergy-age-mcp": {
       "command": "uvx",
@@ -19,13 +20,9 @@
       }
     },
     "opengenes-mcp": {
-      "command": "uvx",
-      "args": ["opengenes-mcp"],
-      "env": {
-        "MCP_PORT": "3001",
-        "MCP_HOST": "0.0.0.0",
-        "MCP_TRANSPORT": "stdio"
-      }
+      "command": "C:\\Users\\young\\.local\\bin\\opengenes-mcp.exe",
+      "args": ["stdio"],
+      "env": {}
     },
     "pharmacology-mcp": {
       "command": "uvx",
